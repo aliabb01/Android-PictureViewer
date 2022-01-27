@@ -16,6 +16,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -27,6 +28,7 @@ import com.google.firebase.firestore.util.Util;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 
@@ -34,9 +36,11 @@ public class MainActivity extends AppCompatActivity {
 
     private ImageView imageView;
 
-    private Button openBtn, closeBtn;
+    private Button openBtn, closeBtn, saveCopyBtn;
 
     private Bitmap bitmapImage;
+
+    private Uri imageUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         imageView = (ImageView) findViewById(R.id.imageView);
         openBtn = (Button) findViewById(R.id.openBtn);
         closeBtn = (Button) findViewById(R.id.closeBtn);
+        saveCopyBtn = (Button) findViewById(R.id.saveCopyBtn);
 
         openBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -78,6 +83,19 @@ public class MainActivity extends AppCompatActivity {
                 imageView.setImageURI(null);
             }
         });
+
+        saveCopyBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try {
+                    bitmapImage = MediaStore.Images.Media.getBitmap(getApplicationContext().getContentResolver(), imageUri);
+                    saveCopy(bitmapImage);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void pickImageFromGallery() {
@@ -88,12 +106,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveCopy(Bitmap imageBitmap) {
-        String root = Environment.getExternalStorageDirectory().toString();
-        File myDir = new File(root + "/saved_images");
+        String root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString();
+        File myDir = new File(root);
         myDir.mkdirs();
-        String fname = "Image-1.jpg";
+        String fname = "Image-copy.jpg";
         File file = new File (myDir, fname);
-        if (file.exists ()) file.delete ();
+        if (file.exists()) {
+            file.delete();
+        }
         try {
             FileOutputStream out = new FileOutputStream(file);
             imageBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
@@ -118,7 +138,8 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         }
-        else { //permission is automatically granted on sdk<23 upon installation
+        else {
+            //permission is automatically granted on sdk<23 upon installation
             Log.v("TAG","Permission is granted");
             return true;
         }
@@ -152,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == RESULT_OK && requestCode == 1000) {
             // set image to image view
             imageView.setImageURI(data.getData());
+            imageUri = data.getData();
         }
     }
 
